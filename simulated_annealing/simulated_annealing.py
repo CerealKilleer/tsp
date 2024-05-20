@@ -3,9 +3,12 @@ import random
 import urllib.request
 import folium 
 import webbrowser
+import time
 
 class sim_anneal(object):
-  def __init__(self, coords, T=5e3, alpha=0.999, stop_t = 1e-3, stop_iters=10e3):
+  def __init__(self, coords, T=5e3, alpha=0.999, stop_t = 1e-3, stop_iters=10e3, max_best_solution_iters=float("Inf")):
+    """ Inicializa el algoritmo de recocido simulado con los parámetros de temperatura, enfriamiento y umbral de parada 
+    que pueden ser definidos por el usuario o ser los valores por defecto"""
     self.coords = coords
     self.N = len(coords)
     self.T = T
@@ -13,9 +16,11 @@ class sim_anneal(object):
     self.stop_t = stop_t
     self.stop_iters = 1e-3
     self.iteration = 1
-    self.nodes = [i for i in range(self.N)]
+    self.best_solution_iters = 1
+    self.nodes = [i for i in range(self.N)] # Lista de nodos
     self.best_solution = None
     self.best_distance = float("Inf")
+    self.max_same_best_solution = max_best_solution_iters
 
   def init_solution(self):
     """ Genera una solución aleatoria inicial para el problema del agente viajero"""
@@ -55,21 +60,32 @@ class sim_anneal(object):
     o con una probabilidad dada por la función de probabilidad de aceptación """
     candidate_distance = self.total_distance(candidate)
 
-    if candidate_distance < self.best_distance:
+    if (candidate_distance - self.best_distance) < 0: # Si la solución candidata es mejor que la actual siempre se acepta
         self.best_distance, self.best_solution = candidate_distance, candidate
-    elif random.random() <= self.probability_acceptance(candidate_distance):
-        self.best_distance, self.best_solution = candidate_distance, candidate
+        self.best_solution_iters = 1
+    elif (candidate_distance - self.best_distance) > 0: # Si la solución candidata es peor que la actual se acepta con una probabilidad dada
+      if random.random() <= self.probability_acceptance(candidate_distance):
+          self.best_distance, self.best_solution = candidate_distance, candidate
+          self.best_solution_iters = 1
     
-  def do_annealing(self, temp=-1, alpha=-1, stop_t=-1, stop_iters=-1, initial_solution=None,do_iters=False):
+
+  def __max_iters_with_same_best(self, last_best_solution):
+    """ Valida si la mejor solución no ha cambiado en un número de iteraciones dado"""
+    if (self.best_solution == last_best_solution):
+        self.best_solution_iters += 1
+    
+  def do_annealing(self, temp=-1, alpha=-1, stop_t=-1, stop_iters=-1, max_best_sol_iters = -1, initial_solution=None,do_iters=False):
     # Se permite cambiar los parámetros de temperatura, enfriamiento y umbral de parada
-    if temp != -1:
+    if temp > 0:
         self.T = temp
-    if alpha != -1:
+    if alpha > 0:
         self.alpha = alpha
-    if stop_t != -1:
+    if stop_t > 0:
         self.stop_t = stop_t
-    if stop_iters != -1:
+    if stop_iters > 0:
         self.stop_iters = stop_iters
+    if max_best_sol_iters > 0:
+        self.max_same_best_solution = max_best_sol_iters
 
     if not do_iters:
         """ Se permite cambiar los parámetros de temperatura, enfriamiento y umbral de parada
@@ -91,9 +107,9 @@ class sim_anneal(object):
 
     self.iteration = 0
     while self.iteration < self.stop_iters:
-        candidate_solution = list(self.best_solution)
-        self.__swap(candidate_solution)
-        self.accept(candidate_solution)
+        candidate_solution = list(self.best_solution) # Copia la solución actual
+        self.__swap(candidate_solution) # Genera una solución candidata a partir de la solución actual y un operador de vecindad
+        self.accept(candidate_solution) # Acepta o no la solución candidata
         self.T *= self.alpha # Disminuye la temperatura
         self.iteration += 1
 
@@ -108,11 +124,13 @@ class sim_anneal(object):
         self.best_solution, self.best_distance = initial_solution, self.total_distance(initial_solution)
 
     self.iteration = 0
-    while self.T >= self.stop_t: # Mientras la temperatura sea mayor que el umbral de parada
+    while ((self.T >= self.stop_t) and (self.best_solution_iters < self.max_same_best_solution)):
         candidate_solution = list(self.best_solution) # Copia la solución actual
+        last_best_solution = candidate_solution # Guarda la última mejor solución
         self.__swap(candidate_solution) # Genera una solución candidata
         self.accept(candidate_solution) # Acepta o no la solución candidata
         self.T *= self.alpha # Disminuye la temperatura
+        self.__max_iters_with_same_best(last_best_solution) # Valida si la mejor solución no ha cambiado
         self.iteration += 1
     
     print("Iteraciones con condición de parada en temperatura: ", self.iteration)
@@ -154,13 +172,14 @@ def read_cities(url):
         return None
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp15.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp5.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
-    sa = sim_anneal(coordinates, T=100e3, alpha=0.99)
-    sa.do_annealing(initial_solution=None, do_iters=False)
-   
+    start = time.time()
+    sa = sim_anneal(coordinates, T=50e3, alpha=0.99)
+    sa.do_annealing(initial_solution=None,max_best_sol_iters=1000, do_iters=False)
+    end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
 
@@ -171,5 +190,6 @@ if __name__ == '__main__':
 
     folium.PolyLine(points, color='red').add_to(map)
     print("Distancia total: ", sa.total_distance(tour))
+    print("Tiempo del recocido simulado: ", end-start)
     map.save('map.html')
     webbrowser.open('map.html')
