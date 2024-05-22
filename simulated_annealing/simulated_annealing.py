@@ -23,7 +23,7 @@ class sim_anneal(object):
 
   def init_solution(self):
     """ Genera una solución aleatoria inicial para el problema del agente viajero"""
-
+    self.generate_distance_matrix() # Genera la matriz de distancias
     self.best_solution = [0] #0 es el nodo orígen
     free_nodes = set(self.nodes) # Crea un conjunto, algunas operaciones son más rápidas que con listas
     free_nodes.remove(0) 
@@ -37,6 +37,10 @@ class sim_anneal(object):
     self.best_distance = self.total_distance(self.best_solution) # Calcula la distancia total de la solución
     return self.best_solution, self.best_distance
 
+  def generate_distance_matrix(self):
+    """ Genera una matriz de distancias entre los nodos """
+    self.dist_matrix = [[self.distance(i, j) for j in range(self.N)] for i in range(self.N)]
+
   def get_tour(self):
     """ Devuelve la mejor solución encontrada """
     return self.best_solution
@@ -47,8 +51,12 @@ class sim_anneal(object):
     return math.sqrt((coord_0[0] - coord_1[0])**2 + (coord_0[1] - coord_1[1])**2)
   
   def total_distance(self, solution):
-    """ Calcula la distancia total de una solución """
-    return sum([self.distance(solution[i % self.N], solution[(i+1) % self.N]) for i in range(self.N)])
+    """ Calcula la distancia total de una solución a partir de la matriz de distancias """
+    distance = 0
+    for i in range(self.N - 1):
+        distance += self.dist_matrix[solution[i]][solution[i+1]]
+    distance += self.dist_matrix[solution[self.N - 1]][solution[0]]
+    return distance
   
   def probability_acceptance(self, candidate_distance):
     """ Calcula la probabilidad de aceptar un candidato """
@@ -117,7 +125,7 @@ class sim_anneal(object):
     candidate_solution[j] = aux
     return candidate_solution
   
-  def repeat_annealing(self, repeat, coordinates=None, t=-1, alpha=-1, stop_t=-1, max_best_sol_iters=float("Inf")):
+  def repeat_annealing(self, repeat, initial_sol=None, coordinates=None, t=-1, alpha=-1, stop_t=-1, max_best_sol_iters=float("Inf")):
     """ Repite el recocido simulado y selecciona la mejor solución encontrada.
      Los parámetros de temperatura, enfriamiento y umbral de parada pueden ser definidos por el usuario o ser los valores por defecto"""
     if t > 0:
@@ -135,7 +143,7 @@ class sim_anneal(object):
     solution = None
     self.iteration = 0
     for i in range(repeat):
-        self.do_annealing()
+        self.do_annealing(initial_solution=initial_sol)
         if self.best_distance < distance:
             distance = self.best_distance
             solution = self.best_solution
@@ -171,15 +179,27 @@ def read_cities(url):
         return None
 
 
+def do_overheating(sa, repeats=None, t=None, alphas=None):
+   """ Encuentra una solución inicial y hace un recalentamiento para tratar de encontrar una mejor solución 
+   Asume que el número de repeticiones, la temperatura y el enfriamiento son los mismos
+   los parametros repeat, t, alphas, se envian en listas"""
+
+   if len(repeats) == len(t) == len(alphas) and repeats is not None:
+       sa.repeat_annealing(repeats[0], t=t[0], alpha=alphas[0])
+       for i in range(len(repeats) - 1):
+           sa.repeat_annealing(repeats[i+1], initial_sol=sa.best_solution, t=t[i+1], alpha=alphas[i+1])
+   else:
+       print("Los parámetros de repeticiones, temperatura y enfriamiento deben tener la misma longitud")
+   
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp15.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp25.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
     start = time.time()
     sa = sim_anneal(coordinates)
-    sa.repeat_annealing(10, t=1e6, alpha=0.25, max_best_sol_iters=100)
+    do_overheating(sa, [10,10,10], [100e3, 100e3, 100e3], [0.99, 0.99, 0.99])
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
