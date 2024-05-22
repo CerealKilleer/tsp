@@ -7,7 +7,7 @@ from gurobipy import GRB
 import webbrowser
 import folium
 
-url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp5.txt'
+url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp10.txt'
 
 def read_cities(url):
     try:

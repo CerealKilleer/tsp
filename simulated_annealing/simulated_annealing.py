@@ -6,7 +6,7 @@ import webbrowser
 import time
 
 class sim_anneal(object):
-  def __init__(self, coords, T=5e3, alpha=0.999, stop_t = 1e-3, stop_iters=10e3, max_best_solution_iters=float("Inf")):
+  def __init__(self, coords, T=5e3, alpha=0.999, stop_t = 1e-3, max_best_solution_iters=float("Inf")):
     """ Inicializa el algoritmo de recocido simulado con los parámetros de temperatura, enfriamiento y umbral de parada 
     que pueden ser definidos por el usuario o ser los valores por defecto"""
     self.coords = coords
@@ -14,8 +14,7 @@ class sim_anneal(object):
     self.T = T
     self.alpha = alpha
     self.stop_t = stop_t
-    self.stop_iters = 1e-3
-    self.iteration = 1
+    self.iteration = 0
     self.best_solution_iters = 1
     self.nodes = [i for i in range(self.N)] # Lista de nodos
     self.best_solution = None
@@ -74,7 +73,7 @@ class sim_anneal(object):
     if (self.best_solution == last_best_solution):
         self.best_solution_iters += 1
     
-  def do_annealing(self, temp=-1, alpha=-1, stop_t=-1, stop_iters=-1, max_best_sol_iters = -1, initial_solution=None,do_iters=False):
+  def do_annealing(self, temp=-1, alpha=-1, stop_t=-1, stop_iters=-1, max_best_sol_iters = -1, initial_solution=None):
     # Se permite cambiar los parámetros de temperatura, enfriamiento y umbral de parada
     if temp > 0:
         self.T = temp
@@ -86,44 +85,18 @@ class sim_anneal(object):
         self.stop_iters = stop_iters
     if max_best_sol_iters > 0:
         self.max_same_best_solution = max_best_sol_iters
-
-    if not do_iters:
-        """ Se permite cambiar los parámetros de temperatura, enfriamiento y umbral de parada
-          si se quiere hacer el recocido con parada por temperatura
-        """
-        self.__annealing_temperature(initial_solution)
-    else:
-        
-        self.__anneling_iters(initial_solution)
-
-
-  def __anneling_iters(self, initial_solution=None):
-    """ Ejecuta el algoritmo de recocido simulado con un número fijo de iteraciones """
-    
-    if initial_solution is None:
-        self.best_solution, self.best_distance = self.init_solution()
-    else:
-        self.best_solution, self.best_distance = initial_solution, self.total_distance(initial_solution)
-
-    self.iteration = 0
-    while self.iteration < self.stop_iters:
-        candidate_solution = list(self.best_solution) # Copia la solución actual
-        self.__swap(candidate_solution) # Genera una solución candidata a partir de la solución actual y un operador de vecindad
-        self.accept(candidate_solution) # Acepta o no la solución candidata
-        self.T *= self.alpha # Disminuye la temperatura
-        self.iteration += 1
-
-    print("Iteraciones con condicion de parada en iteraciones: ",  self.iteration)
+    self.__annealing_temperature(initial_solution)
 
   def __annealing_temperature(self, initial_solution=None):
-    """ Ejecuta el algoritmo de recocido simulado con una temperatura inicial y una solucion inicial que pueden ser dadas"""
+    """ Ejecuta el algoritmo de recocido simulado con una temperatura inicial y una solucion inicial que puede ser
+    definida por el usuario o generada aleatoriamente"""
     
     if initial_solution is None:
         self.best_solution, self.best_distance = self.init_solution()
     else:
         self.best_solution, self.best_distance = initial_solution, self.total_distance(initial_solution)
 
-    self.iteration = 0
+    T = self.T
     while ((self.T >= self.stop_t) and (self.best_solution_iters < self.max_same_best_solution)):
         candidate_solution = list(self.best_solution) # Copia la solución actual
         last_best_solution = candidate_solution # Guarda la última mejor solución
@@ -133,7 +106,7 @@ class sim_anneal(object):
         self.__max_iters_with_same_best(last_best_solution) # Valida si la mejor solución no ha cambiado
         self.iteration += 1
     
-    print("Iteraciones con condición de parada en temperatura: ", self.iteration)
+    self.T = T
 
   def __swap(self, candidate_solution):
     """ Intercambia dos nodos aleatorios en una solución, excepto el nodo inicial """
@@ -143,7 +116,33 @@ class sim_anneal(object):
     candidate_solution[i] = candidate_solution[j]
     candidate_solution[j] = aux
     return candidate_solution
+  
+  def repeat_annealing(self, repeat, coordinates=None, t=-1, alpha=-1, stop_t=-1, max_best_sol_iters=float("Inf")):
+    """ Repite el recocido simulado y selecciona la mejor solución encontrada.
+     Los parámetros de temperatura, enfriamiento y umbral de parada pueden ser definidos por el usuario o ser los valores por defecto"""
+    if t > 0:
+        self.T = t
+    if alpha > 0:
+        self.alpha = alpha
+    if stop_t > 0:
+        self.stop_t = stop_t
+    if max_best_sol_iters > 0:
+        self.max_same_best_solution = max_best_sol_iters
+    if coordinates is not None:
+        self.coords = coordinates
 
+    distance = float("Inf")
+    solution = None
+    self.iteration = 0
+    for i in range(repeat):
+        self.do_annealing()
+        if self.best_distance < distance:
+            distance = self.best_distance
+            solution = self.best_solution
+
+    self.best_solution = solution
+    self.best_distance = distance
+      
 
 def read_cities(url):
     try:
@@ -171,14 +170,16 @@ def read_cities(url):
         print(f"Error al leer el archivo desde la URL: {e}")
         return None
 
+
+
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp5.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp15.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
     start = time.time()
-    sa = sim_anneal(coordinates, T=50e3, alpha=0.99)
-    sa.do_annealing(initial_solution=None,max_best_sol_iters=1000, do_iters=False)
+    sa = sim_anneal(coordinates)
+    sa.repeat_annealing(10, t=1e6, alpha=0.25, max_best_sol_iters=100)
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
