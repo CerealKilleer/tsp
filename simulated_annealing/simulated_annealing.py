@@ -193,13 +193,13 @@ def do_overheating(sa, repeats=None, t=None, alphas=None):
    
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp25.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp40.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
     start = time.time()
     sa = sim_anneal(coordinates)
-    do_overheating(sa, [10,10,10], [100e3, 100e3, 100e3], [0.99, 0.99, 0.99])
+    do_overheating(sa, repeats=[10, 10, 10], t=[1e6, 1e6, 1e6], alphas=[0.99, 0.99, 0.999])
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
