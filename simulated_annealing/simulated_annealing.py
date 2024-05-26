@@ -73,18 +73,21 @@ class sim_anneal(object):
         self.accepted_distance, self.accepted_sol  = candidate_distance, candidate
         if self.accepted_distance < self.best_distance:
           self.best_distance, self.best_solution = candidate_distance, candidate
-          self.validate_best_solution()
+          return self.validate_best_solution()
 
     elif (candidate_distance - self.accepted_distance) > 0: # Si la solución candidata es peor que la actual se acepta con una probabilidad dada
       if random.random() <= self.probability_acceptance(candidate_distance):
           self.accepted_distance, self.accepted_sol = candidate_distance, candidate
-          self.validate_best_solution()
+          return self.validate_best_solution()
+    return False
           
 
   def validate_best_solution(self):
     """ Valida si se debe actualizar la mejor solución encontrada """
     if self.accepted_distance < self.best_distance:
         self.best_distance, self.best_solution = self.accepted_distance, self.accepted_sol
+        return True
+    return False
   
 
   def do_annealing(self, temp=-1, alpha=-1, stop_t=-1, stop_iters=-1, max_convergence_iters = -1, initial_solution=None):
@@ -113,10 +116,11 @@ class sim_anneal(object):
 
     T = self.T
     while ((self.T >= self.stop_t)):
-        for i in range(int(self.max_convergence_iters)):
+        for i in range(int(self.max_convergence_iters)): # Condicion de convergencia a una temperatura
           candidate_solution = list(self.accepted_sol) # Copia la solución actual
           self.__swap(candidate_solution) # Genera una solución candidata
-          self.accept(candidate_solution) # Acepta o no la solución candidata
+          if self.accept(candidate_solution): # Acepta o no la solución candidata
+             break # Si se acepta la solución candidata y es mejor que la mejor solución se asume convergencia
         self.T *= self.alpha # Disminuye la temperatura  
     self.T = T
 
@@ -156,28 +160,28 @@ def read_cities(url):
         return None
 
 
-def do_overheating(sa, repeats=None, t=None, alphas=None):
+def do_overheating(sa, t=None, alphas=None, coverg_iters=None):
    """ Encuentra una solución inicial y hace un recalentamiento para tratar de encontrar una mejor solución 
    Asume que el número de repeticiones, la temperatura y el enfriamiento son los mismos
    los parametros repeat, t, alphas, se envian en listas"""
 
-   if len(repeats) == len(t) == len(alphas) and repeats is not None:
-       sa.repeat_annealing(repeats[0], t=t[0], alpha=alphas[0])
-       for i in range(len(repeats) - 1):
-           sa.repeat_annealing(repeats[i+1], initial_sol=sa.best_solution, t=t[i+1], alpha=alphas[i+1])
+   if len(coverg_iters) == len(t) == len(alphas) and t is not None:
+       sa.do_annealing(temp=t[0], alpha=alphas[0], max_convergence_iters=coverg_iters[0])
+       for i in range(len(t) - 1):
+           sa.do_annealing(temp=t[i+1], alpha=alphas[i+1], max_convergence_iters=coverg_iters[i+1], initial_solution=sa.best_solution)
    else:
-       print("Los parámetros de repeticiones, temperatura y enfriamiento deben tener la misma longitud")
+       print("Los parámetros de covergencia, temperatura y enfriamiento deben tener la misma longitud")
    
 
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp15.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp50.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
     start = time.time()
     sa = sim_anneal(coordinates)
-    sa.do_annealing(temp=10e3, alpha=0.99, max_convergence_iters=1000)
+    do_overheating(sa, t=[10e3, 10e3], alphas=[0.99, 0.99], coverg_iters=[1000, 1000])
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
@@ -185,7 +189,7 @@ if __name__ == '__main__':
     points = []
     for city in tour:
       points.append(coordinates[city])
-    points.append(points[0])
+    points.append(points[0])  
 
     folium.PolyLine(points, color='red').add_to(map)
     print("Distancia total: ", sa.best_distance)
