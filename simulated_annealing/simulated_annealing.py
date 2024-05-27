@@ -114,7 +114,7 @@ class sim_anneal(object):
         self.best_solution, self.best_distance = initial_solution, self.total_distance(initial_solution)
         self.accepted_sol, self.accepted_distance = self.best_solution, self.best_distance
 
-    T = self.T
+    
     while ((self.T >= self.stop_t)):
         for i in range(int(self.max_convergence_iters)): # Condicion de convergencia a una temperatura
           candidate_solution = list(self.accepted_sol) # Copia la solución actual
@@ -122,7 +122,6 @@ class sim_anneal(object):
           if self.accept(candidate_solution): # Acepta o no la solución candidata
              break # Si se acepta la solución candidata y es mejor que la mejor solución se asume convergencia
         self.T *= self.alpha # Disminuye la temperatura  
-    self.T = T
 
   def __swap(self, candidate_solution):
     """ Intercambia dos nodos aleatorios en una solución, excepto el nodo inicial """
@@ -175,13 +174,16 @@ def do_overheating(sa, t=None, alphas=None, coverg_iters=None):
 
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp50.txt'
+    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp60.txt'
     coordinates_cities = read_cities(url)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
+    T = [10e3, 15e3, 20e3, 20e3, 15e3, 10e3]
+    alphas = [0.99]*6
+    coverg_iters = [1000]*6
     start = time.time()
     sa = sim_anneal(coordinates)
-    do_overheating(sa, t=[10e3, 10e3], alphas=[0.99, 0.99], coverg_iters=[1000, 1000])
+    do_overheating(sa, t=T, alphas=alphas, coverg_iters=coverg_iters)
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)
