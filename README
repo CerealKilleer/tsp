@@ -1,6 +1,9 @@
 Para correr el algorítmo se necesitará:
+La librerías folium gurobipy
+el archivo requirements.txt permite instalarlas con pip install -r requirements.txt
+el algoritmo fue desarrollado y probado sobre python 3.12.3
 
-Un archivo de ciudades y coordenadas con extensión .txt y en el directorio ciudades se encuentras las ciudades usadas
+Un archivo de ciudades y coordenadas con extensión .txt y en el directorio ciudades se encuentran las ciudades usadas
 para las pruebas, todas tienen el nombre tspxx.txt con xx el número de ciudades así: 5,10,15,20,25,30,40,60
 
 Una instancia de la clase sim_anneal que recibe la lista de coordenadas y puede o no tener valores personalizados
