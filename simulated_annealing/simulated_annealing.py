@@ -184,7 +184,7 @@ if __name__ == '__main__':
     coverg_iters = [1000]*6
     start = time.time()
     sa = sim_anneal(coordinates)
-    do_overheating(sa, t=T, alphas=alphas, coverg_iters=coverg_iters)
+    sa.do_annealing(temp=5e3, alpha=0.99, stop_t=1e-3, stop_iters=100)
     end = time.time()
     tour = sa.get_tour()
     map = folium.Map(location=[-15,-60], zoom_start = 4)

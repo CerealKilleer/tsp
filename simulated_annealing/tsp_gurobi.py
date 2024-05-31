@@ -79,7 +79,7 @@ def subtour(edges):
 
 
 # Llama a la función para leer las ciudades y las almacena  en un diccionario
-coordinates = read_cities(url)
+coordinates = read_cities(path)
 cities = list(coordinates.keys())
 # Crea un diccionario con las distancias entre las ciudades
 dist = {(c1, c2): distance(c1, c2) for c1, c2 in combinations(cities, 2)}
