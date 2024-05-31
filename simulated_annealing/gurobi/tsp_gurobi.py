@@ -7,20 +7,20 @@ from gurobipy import GRB
 import webbrowser
 import folium
 
-url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp60.txt'
+path = './ciudades/tsp5.txt'
 
-def read_cities(url):
+def read_cities(file_path):
     try:
-        # Descargar el contenido del archivo desde la URL
-        response = urllib.request.urlopen(url)
-        data = response.read().decode('utf-8')
-
+        # Abre y lee el contenido del archivo local
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = file.read()
+        
         # Inicializa un diccionario vacío
         cities_dict = {}
-
+        
         # Divide el contenido en líneas
         lines = data.strip().split('\n')
-
+        
         # Procesa cada línea
         for line in lines:
             parts = line.split(',')
@@ -29,10 +29,10 @@ def read_cities(url):
                 lat = float(parts[1].strip())
                 long = float(parts[2].strip())
                 cities_dict[city] = (lat, long)
-
+        
         return cities_dict
-    except Exception as e:
-        print(f"Error al leer el archivo desde la URL: {e}")
+    except Exception as e: # Captura cualquier excepción que ocurra
+        print(f"Error al leer el archivo local: {e}")
         return None
 
 

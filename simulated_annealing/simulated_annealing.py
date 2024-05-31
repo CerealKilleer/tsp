@@ -132,11 +132,11 @@ class sim_anneal(object):
     candidate_solution[j] = aux
     return candidate_solution
   
-def read_cities(url):
+def read_cities(file_path):
     try:
-        # Descargar el contenido del archivo desde la URL
-        response = urllib.request.urlopen(url)
-        data = response.read().decode('utf-8')
+        # Abre y lee el contenido del archivo local
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = file.read()
         
         # Inicializa un diccionario vacío
         cities_dict = {}
@@ -154,9 +154,10 @@ def read_cities(url):
                 cities_dict[city] = (lat, long)
         
         return cities_dict
-    except Exception as e:
-        print(f"Error al leer el archivo desde la URL: {e}")
+    except Exception as e: # Captura cualquier excepción que ocurra
+        print(f"Error al leer el archivo local: {e}")
         return None
+
 
 
 def do_overheating(sa, t=None, alphas=None, coverg_iters=None):
@@ -174,8 +175,8 @@ def do_overheating(sa, t=None, alphas=None, coverg_iters=None):
 
 
 if __name__ == '__main__':
-    url = 'https://raw.githubusercontent.com/CerealKilleer/tsp/main/ciudades/tsp60.txt'
-    coordinates_cities = read_cities(url)
+    path = './ciudades/tsp5.txt'
+    coordinates_cities = read_cities(path)
     cities = list(coordinates_cities.keys())
     coordinates = list(coordinates_cities.values())
     T = [10e3, 15e3, 20e3, 20e3, 15e3, 10e3]
