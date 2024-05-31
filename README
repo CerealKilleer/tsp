@@ -15,9 +15,10 @@ para hacer una corrida del algorítmo se usa el método do_annealing()
 sa.do_annealing(temp=10e3, alpha=0.99, max_convergence_iters=100) 
 hace el recocido con una temperatura inicial de 10E3, un alpha de 0.99 y un máximo de 100 iteraciones de convergencia
 
-para hacer un recalentamiento se usa la función do_overheating()
+para hacer recalentamientos se usa la función do_overheating()
 T = [10e3, 15e3, 20e3, 20e3, 15e3, 10e3]
 alphas = [0.99]*6
 coverg_iters = [1000]*6
 do_overheating(sa, t=T, alphas=alphas, coverg_iters=coverg_iters)
 recibe la instancia sa, una lista de temperaturas, una lista de alphas y una lista de iteraciones de convergencia
+hace 5 recalentamientos de la configuracion inicial
